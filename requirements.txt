@@ -1,0 +1,4 @@
+Pillow
+matplotlib
+numpy
+tensorflow==2.0a0
