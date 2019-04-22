@@ -1,13 +1,16 @@
-
 import numpy as np
 from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.utils import to_categorical
 
+from plot_history import plot_history
 
-def create_model(x_train, y_train, x_test, y_test, n_classes, batch_size, epochs,
-                 plot_path='', use_data_aug=True):
+
+def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, plot_path='', use_data_aug=True):
+    # Calculate number of classes
+    n_classes = max(y_train.amax(), y_test.amax()) + 1
+
     # Convert class vectors to binary class matrices
     y_train = to_categorical(y_train, n_classes)
     y_test = to_categorical(y_test, n_classes)
@@ -64,6 +67,6 @@ def create_model(x_train, y_train, x_test, y_test, n_classes, batch_size, epochs
     
     # Create Plot
     if plot_path:
-        plot_history(history, plot_path)  # TODO
+        plot_history(history, plot_path)
 
     return model
