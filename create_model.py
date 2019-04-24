@@ -1,7 +1,8 @@
 import numpy as np
-from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.python.keras.models import Sequential
+from tensorflow.python.keras.optimizers import SGD
 from tensorflow.python.keras.utils import to_categorical
 
 from utils import plot_history
@@ -35,25 +36,34 @@ def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, plot_path
                      (5, 5),                       # Size of filters
                      data_format='channels_last',  # Format of data (#images, height, width, channels)
                      activation='relu',            # Kind of activation layer
-                     input_shape=(25, 25, 3)))     # Shape of input, channels last
+                     input_shape=(32, 32, 3)))     # Shape of input, channels last
+    model.add(Conv2D(32, (3, 3), activation='relu'))
     model.add(MaxPooling2D((2, 2)))
+    model.add(Dropout(0.25))
+    model.add(BatchNormalization())
+    model.add(Conv2D(64, (3, 3), activation='relu'))
     model.add(Conv2D(64, (3, 3), activation='relu'))
     model.add(MaxPooling2D((2, 2)))
+    model.add(BatchNormalization())
     model.add(Flatten())
     model.add(Dense(512, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(n_classes, activation='softmax'))
 
+    # Initiate a Stochastic Gradient Descent optimizer
+    optimizer = SGD(lr=0.005)
+
     # Training Options
     model.compile(loss='categorical_crossentropy',
-                  optimizer='sgd',
+                  optimizer=optimizer,
                   metrics=['accuracy'])
 
     # Train the model
     if use_data_aug:
         data_generator = ImageDataGenerator(width_shift_range=0.1,
                                             height_shift_range=0.1,
-                                            horizontal_flip=True)
+                                            horizontal_flip=True,
+                                            vertical_flip=True)
         data_generator.fit(x_train)
         history = model.fit_generator(data_generator.flow(x_train, y_train, batch_size=batch_size),
                                       epochs=epochs,

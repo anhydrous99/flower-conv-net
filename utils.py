@@ -47,7 +47,7 @@ def load_images(image_list):
     output_list = []
     for image_path in image_list:
         img = Image.open(image_path)
-        img = img.resize((25, 25))
+        img = img.resize((32, 32))
         img_np = np.asarray(img).reshape((img.size[1], img.size[0], 3))
         output_list.append(img_np)
     return np.stack(output_list)

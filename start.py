@@ -16,7 +16,7 @@ parser.add_argument(
 parser.add_argument(
     '--epochs',
     type=int,
-    default=50,
+    default=100,
     help='Number of times to train over data.'
 )
 parser.add_argument(
