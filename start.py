@@ -37,6 +37,12 @@ parser.add_argument(
     help='Percentage of data to use as validation'
 )
 parser.add_argument(
+    '--learning_rate',
+    type=float,
+    default=0.005,
+    help='Rate at which to train the model.'
+)
+parser.add_argument(
     '--save_hdf5',
     type=str,
     default='',
@@ -55,6 +61,7 @@ epochs = args.epochs
 use_augmentation = not args.disable_augmentation
 batch_size = args.train_batch_size
 percent_valid = args.percentage_validation
+learning_rate = args.learning_rate
 model_save_path = args.save_hdf5
 history_plot_path = args.save_history_plot
 
@@ -64,6 +71,7 @@ print(f'Path of data text file - {data_path}')
 print(f'Number of epochs to train for - {epochs}')
 print(f'Number of samples to train on at a time - {batch_size}')
 print(f'{percent_valid}% of data will be used for validation')
+print(f'{learning_rate} will be the learning rate for the SGD algorithm')
 if use_augmentation:
     print('Data augmentation will be used')
 if model_save_path:
@@ -84,7 +92,7 @@ image_array = load_images(image_list)
 (x_train, y_train, x_test, y_test) = split(image_array, classifications, percent_valid)
 
 print('Creating and Training Model\n')
-model = create_model(x_train, y_train, x_test, y_test, batch_size, epochs, history_plot_path, use_augmentation)
+model = create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_rate, history_plot_path, use_augmentation)
 
 # Saves the model to Kera's
 if model_save_path:

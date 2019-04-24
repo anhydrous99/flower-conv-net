@@ -8,7 +8,7 @@ from tensorflow.python.keras.utils import to_categorical
 from utils import plot_history
 
 
-def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, plot_path='', use_data_aug=True):
+def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_rate, plot_path='', use_data_aug=True):
     # Calculate number of classes
     n_classes = max(np.amax(y_train), np.amax(y_test)) + 1
 
@@ -51,7 +51,7 @@ def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, plot_path
     model.add(Dense(n_classes, activation='softmax'))
 
     # Initiate a Stochastic Gradient Descent optimizer
-    optimizer = SGD(lr=0.005)
+    optimizer = SGD(lr=learning_rate)
 
     # Training Options
     model.compile(loss='categorical_crossentropy',
