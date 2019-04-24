@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def save_model(model, path):
@@ -25,3 +26,17 @@ def plot_history(history, plot_path):
 
     plt.savefig(plot_path)
 
+
+def parse_textfile(path):
+    image_paths_list = []
+    classifications_list = []
+    with open(path, 'r') as fp:
+        line = fp.readline()
+        i = 0
+        while line:
+            s = line.split('	')
+            image_paths_list[i] = s[0]
+            classifications_list[i] = int(s[1])
+            line = fp.readline()
+            i = i + 1
+    return image_paths_list, np.asarray(classifications_list, dtype=np.int)

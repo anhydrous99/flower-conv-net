@@ -1,7 +1,7 @@
 import argparse
 
 from create_model import create_model
-from utils import save_model
+from utils import save_model, parse_textfile
 
 parser = argparse.ArgumentParser(
     description='Creates and trains a small Convolutional Neural Network to classify images of flowers',
