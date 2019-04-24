@@ -63,9 +63,12 @@ print(f'Path of data text file - {data_path}')
 print(f'Number of epochs to train for - {epochs}')
 print(f'Number of samples to train on at a time - {batch_size}')
 print(f'{percent_valid}% of data will be used for validation')
-if use_augmentation: print('Data augmentation will be used')
-if model_save_path: print(f'Will save model after training to - {model_save_path}')
-if history_plot_path: print(f'Will save training plot to - {history_plot_path}')
+if use_augmentation:
+    print('Data augmentation will be used')
+if model_save_path:
+    print(f'Will save model after training to - {model_save_path}')
+if history_plot_path:
+    print(f'Will save training plot to - {history_plot_path}')
 print()
 
 print('Parsing data text file\n')
