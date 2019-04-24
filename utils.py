@@ -50,4 +50,13 @@ def load_images(image_list):
         img = img.resize((25, 25))
         img_np = np.asarray(img).reshape((img.size[1], img.size[0], 3))
         output_list.append(img_np)
-    return np.vstack(output_list)
+    return np.stack(output_list)
+
+
+def split(image_array, classifications, percent_valid):
+    N = image_array.shape[0] // percent_valid
+    x_test = image_array[:N, :, :, :]
+    y_test = classifications[:N]
+    x_train = image_array[N:, :, :, :]
+    y_train = classifications[N:]
+    return x_train, y_train, x_test, y_test
