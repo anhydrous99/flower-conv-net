@@ -92,7 +92,8 @@ image_array = load_images(image_list)
 (x_train, y_train, x_test, y_test) = split(image_array, classifications, percent_valid)
 
 print('Creating and Training Model\n')
-model = create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_rate, history_plot_path, use_augmentation)
+model = create_model(x_train, y_train, x_test, y_test, batch_size, epochs,
+                     learning_rate, history_plot_path, use_augmentation)
 
 # Saves the model to Kera's
 if model_save_path:
