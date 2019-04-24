@@ -27,7 +27,7 @@ parser.add_argument(
 parser.add_argument(
     '--train_batch_size',
     type=int,
-    default=64,
+    default=32,
     help='How many images to train on at a time.'
 )
 parser.add_argument(

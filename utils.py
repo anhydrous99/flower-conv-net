@@ -53,7 +53,14 @@ def load_images(image_list):
     return np.stack(output_list)
 
 
-def split(image_array, classifications, percent_valid):
+def split(image_array, classifications, percent_valid, shuffle=True):
+    if shuffle:
+        combined = np.c_[image_array.reshape(len(image_array), -1), classifications.reshape(len(classifications), -1)]
+        np.random.shuffle(combined)
+        image_array_shuffled = combined[:, :image_array.size // len(image_array)].reshape(image_array.shape)
+        classifications = combined[:, image_array.size // len(image_array):].reshape(classifications.shape)
+        image_array = image_array_shuffled
+
     N = image_array.shape[0] // percent_valid
     x_test = image_array[:N, :, :, :]
     y_test = classifications[:N]
