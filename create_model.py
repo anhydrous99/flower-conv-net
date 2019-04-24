@@ -4,7 +4,7 @@ from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.utils import to_categorical
 
-from plot_history import plot_history
+from utils import plot_history
 
 
 def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, plot_path='', use_data_aug=True):

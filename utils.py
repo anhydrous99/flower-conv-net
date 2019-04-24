@@ -1,5 +1,10 @@
 import matplotlib.pyplot as plt
 
+
+def save_model(model, path):
+    model.save(path)
+
+
 def plot_history(history, plot_path):
     plt.figure(1)
     plt.subplot(211)
@@ -19,3 +24,4 @@ def plot_history(history, plot_path):
     plt.legend(['train', 'test'], loc='upper right')
 
     plt.savefig(plot_path)
+

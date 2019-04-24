@@ -1,6 +1,7 @@
 import argparse
 
 from create_model import create_model
+from utils import save_model
 
 parser = argparse.ArgumentParser(
     description='Creates and trains a small Convolutional Neural Network to classify images of flowers',
@@ -88,4 +89,4 @@ model = create_model(x_train, y_train, x_test, y_test, batch_size, epochs, histo
 # Saves the model to Kera's
 if model_save_path:
     print('Saving model\n')
-    save_model(model, model_save_path)  # TODO
+    save_model(model, model_save_path)
