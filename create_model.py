@@ -9,11 +9,12 @@ from utils import plot_history
 
 def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, plot_path='', use_data_aug=True):
     # Calculate number of classes
-    n_classes = max(y_train.amax(), y_test.amax()) + 1
+    n_classes = max(np.amax(y_train), np.amax(y_test)) + 1
 
     # Convert class vectors to binary class matrices
     y_train = to_categorical(y_train, n_classes)
     y_test = to_categorical(y_test, n_classes)
+    print(y_train.shape)
 
     # Convert images from integers to floats
     x_train = x_train.astype('float32')
