@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 
 
 def save_model(model, path):
@@ -34,9 +35,19 @@ def parse_textfile(path):
         line = fp.readline()
         i = 0
         while line:
-            s = line.split('	')
-            image_paths_list[i] = s[0]
-            classifications_list[i] = int(s[1])
+            s = line.split()
+            image_paths_list.append(s[0])
+            classifications_list.append(int(s[1]))
             line = fp.readline()
             i = i + 1
     return image_paths_list, np.asarray(classifications_list, dtype=np.int)
+
+
+def load_images(image_list):
+    output_list = []
+    for image_path in image_list:
+        img = Image.open(image_path)
+        img = img.resize((25, 25))
+        img_np = np.asarray(img).reshape((img.size[1], img.size[0], 3))
+        output_list.append(img_np)
+    return np.vstack(output_list)

@@ -1,7 +1,7 @@
 import argparse
 
 from create_model import create_model
-from utils import save_model, parse_textfile
+from utils import save_model, parse_textfile, load_images
 
 parser = argparse.ArgumentParser(
     description='Creates and trains a small Convolutional Neural Network to classify images of flowers',
@@ -74,11 +74,11 @@ print()
 
 print('Parsing data text file\n')
 # Returns a list with the images and a 1D numpy array with the classification number
-(image_list, classifications) = parse_textfile(data_path)  # TODO
+(image_list, classifications) = parse_textfile(data_path)
 
 print('Loading images\n')
 # Returns images in path list as a 4D numpy array with the following format (#images, height, width, channels)
-image_array = load_images(image_list)  # TODO
+image_array = load_images(image_list)
 
 # Partitions data for validation and training
 (x_train, y_train, x_test, y_test) = split(image_array, classifications, percent_valid)  # TODO
