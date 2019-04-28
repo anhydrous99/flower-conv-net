@@ -23,6 +23,7 @@ def stem(input):
 
     x1 = MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
     x2 = conv_block(x, 96, 3, 3, strides=(2, 2), padding='same')
+
     x = concatenate([x1, x2], axis=-1)
 
     x1 = conv_block(x, 64, 1, 1)
@@ -32,9 +33,11 @@ def stem(input):
     x2 = conv_block(x2, 64, 1, 7)
     x2 = conv_block(x2, 64, 7, 1)
     x2 = conv_block(x2, 96, 3, 3, padding='same')
+
     x = concatenate([x1, x2], axis=-1)
+
     x1 = conv_block(x, 192, 3, 3, strides=(2, 2), padding='same')
-    x2 = MaxPooling2D((3, 3), strides=(2, 2), padding='same')
+    x2 = MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
     x = concatenate([x1, x2], axis=-1)
     return x
 
@@ -54,6 +57,7 @@ def inception_A(input):
 
     merged = concatenate([a1, a2, a3, a4], axis=-1)
     return merged
+
 
 def inception_B(input):
     b1 = AveragePooling2D((3, 3), strides=(1, 1), padding='same')(input)
@@ -94,6 +98,7 @@ def inception_C(input):
     merged = concatenate([c1, c2, c31, c32, c41, c42], axis=-1)
     return merged
 
+
 def reduction_A(input, k=192, l=224, m=256, n=384):
     ra1 = MaxPooling2D((3, 3), strides=(2, 2), padding='same')(input)
 
@@ -105,6 +110,7 @@ def reduction_A(input, k=192, l=224, m=256, n=384):
 
     merged = concatenate([ra1, ra2, ra3], axis=-1)
     return merged
+
 
 def reduction_B(input):
     rb1 = MaxPooling2D((3, 3), strides=(2, 2), padding='same')(input)
@@ -119,6 +125,7 @@ def reduction_B(input):
 
     merged = concatenate([rb1, rb2, rb3], axis=-1)
     return merged
+
 
 def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_rate,
                  plot_path='', use_data_aug=True):
@@ -144,7 +151,7 @@ def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_
     x_test -= mean
 
     # Create Model
-    init = Input((299, 299, 3))
+    init = Input(shape=(299, 299, 3))
     model = stem(init)
     for i in range(4):
         model = inception_A(model)
@@ -162,7 +169,7 @@ def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_
     model = AveragePooling2D((8, 8))(model)
 
     model = Dropout(0.2)(model)
-    x = Flatten()(model)
+    model = Flatten()(model)
     model = Dense(units=n_classes, activation='softmax')(model)
     model = Model(init, model, name='Inception-v4')
 
