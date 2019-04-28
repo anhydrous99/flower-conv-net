@@ -47,7 +47,7 @@ def load_images(image_list):
     output_list = []
     for image_path in image_list:
         img = Image.open(image_path)
-        img = img.resize((32, 32))
+        img = img.resize((299, 299))
         img_np = np.asarray(img).reshape((img.size[1], img.size[0], 3))
         output_list.append(img_np)
     return np.stack(output_list)
@@ -55,11 +55,10 @@ def load_images(image_list):
 
 def split(image_array, classifications, percent_valid, shuffle=True):
     if shuffle:
-        combined = np.c_[image_array.reshape(len(image_array), -1), classifications.reshape(len(classifications), -1)]
-        np.random.shuffle(combined)
-        image_array_shuffled = combined[:, :image_array.size // len(image_array)].reshape(image_array.shape)
-        classifications = combined[:, image_array.size // len(image_array):].reshape(classifications.shape)
-        image_array = image_array_shuffled
+        rng_state = np.random.get_state()
+        np.random.shuffle(image_array)
+        np.random.set_state(rng_state)
+        np.random.shuffle(classifications)
 
     N = image_array.shape[0] // percent_valid
     x_test = image_array[:N, :, :, :]
