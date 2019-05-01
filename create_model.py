@@ -1,4 +1,7 @@
+import math
 import numpy as np
+import tensorflow as tf
+import horovod.keras as hvd
 from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, AveragePooling2D, Flatten, Dense, \
     Dropout, BatchNormalization, Activation, Input, concatenate
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
@@ -129,6 +132,18 @@ def reduction_B(input):
 
 def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_rate,
                  plot_path='', use_data_aug=True):
+    # Horovod: initialize Horobod.
+    hvd.init()
+
+    #Horovod: pin Threads to be used to process local ran
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.visible_device_list = str(hvd.local_rank())
+    tf.keras.backend.set_session(tf.Session(config=config))
+
+    # Horovod: adjust number of epochs based on number of threads
+    epochs = int(math.ceil(12.0 / hvd.size()))
+
     # Calculate number of classes
     n_classes = max(np.amax(y_train), np.amax(y_test)) + 1
 
@@ -174,12 +189,22 @@ def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_
     model = Model(init, model, name='Inception-v4')
 
     # Initiate a Stochastic Gradient Descent optimizer
-    optimizer = SGD(lr=learning_rate)
+    optimizer = SGD(lr=learning_rate * hvd.size())
+
+    # Horovod: add Horovod Distributed Optimizer.
+    optimizer = hvd.DistributedOptimizer(optimizer)
 
     # Training Options
     model.compile(loss='categorical_crossentropy',
                   optimizer=optimizer,
                   metrics=['accuracy'])
+
+    callbacks = [
+        # Horovod: broadcast initial variable states from rank 0 to all other processes.
+        # This is necessary to ensure consistent initializaion of all workers when
+        # training is started with random weights or restored from a checkpoint.
+        hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+    ]
 
     # Train the model
     if use_data_aug:
@@ -188,7 +213,8 @@ def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_
                                             horizontal_flip=True,
                                             vertical_flip=True)
         data_generator.fit(x_train)
-        history = model.fit_generator(data_generator.flow(x_train, y_train, batch_size=batch_size),
+        flow = data_generator.flow(x_train, y_train, batch_size=batch_size)
+        history = model.fit_generator(flow,
                                       epochs=epochs,
                                       validation_data=(x_test, y_test),
                                       shuffle=True)
@@ -200,7 +226,8 @@ def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_
                             shuffle=True)
 
     # Create Plot
-    if plot_path:
-        plot_history(history, plot_path)
+    if hvd.rank() == 0:
+        if plot_path:
+            plot_history(history, plot_path)
 
     return model
