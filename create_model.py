@@ -1,15 +1,14 @@
 import math
-import numpy as np
+import keras
 import tensorflow as tf
 import horovod.keras as hvd
-from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, AveragePooling2D, Flatten, Dense, \
+from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D, Flatten, Dense, \
     Dropout, BatchNormalization, Activation, Input, concatenate
-from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.python.keras.models import Model
-from tensorflow.python.keras.optimizers import SGD
-from tensorflow.python.keras.utils import to_categorical
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Model
+from keras.optimizers import SGD
 
-from utils import plot_history
+from utils import plot_history, load_images
 
 
 def conv_block(x, nb_filter, nb_row, nb_col, padding='same', strides=(1, 1), use_bias=False):
@@ -130,62 +129,69 @@ def reduction_B(input):
     return merged
 
 
-def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_rate,
-                 plot_path='', use_data_aug=True):
+def dataframe_max(dataframe, col_index):
+    max = 0
+    for i in range(len(dataframe.index)):
+        if (int(dataframe.iloc[i, col_index]) > max):
+            max = int(dataframe.iloc[i, col_index])
+    return max
+
+
+def shard(arr, shard_index, n_shards):
+    shard_size = arr.shape[0] // n_shards
+    shard_start = shard_index * shard_size
+    shard_end = (shard_index + 1) * shard_size
+    if shard_end > arr.shape[0]:
+        shard_end = arr.shape[0]
+    return arr[shard_start:shard_end]
+
+
+def create_model(train_dataset, test_dataset, batch_size, epochs, learning_rate, plot_path=''):
     # Horovod: initialize Horobod.
     hvd.init()
 
-    #Horovod: pin Threads to be used to process local ran
-    config = tf.ConfigProto()
+    # Horovod: pin Threads to be used to process local ran
+    config = tf.ConfigProto(
+        inter_op_parallelism_threads=1,
+        intra_op_parallelism_threads=1)
     config.gpu_options.allow_growth = True
     config.gpu_options.visible_device_list = str(hvd.local_rank())
-    tf.keras.backend.set_session(tf.Session(config=config))
+    keras.backend.set_session(tf.Session(config=config))
 
     # Horovod: adjust number of epochs based on number of threads
-    epochs = int(math.ceil(12.0 / hvd.size()))
+    epochs = int(math.ceil(epochs / hvd.size()))
 
     # Calculate number of classes
-    n_classes = max(np.amax(y_train), np.amax(y_test)) + 1
+    n_classes = dataframe_max(train_dataset, 1) + 1
 
-    # Convert class vectors to binary class matrices
-    y_train = to_categorical(y_train, n_classes)
-    y_test = to_categorical(y_test, n_classes)
-    print(y_train.shape)
+    # Shard Data based on process
+    train_dataset = shard(train_dataset, hvd.rank(), hvd.size())
+    test_dataset = shard(test_dataset, hvd.rank(), hvd.size())
 
-    # Convert images from integers to floats
-    x_train = x_train.astype('float32')
-    x_test = x_test.astype('float32')
-
-    # Set the image pixel range of [0, 255] to [-1, 1]
-    x_train = 2 * x_train / 255 - 1
-    x_test = 2 * x_test / 255 - 1
-
-    # Subtract pixel mean
-    mean = np.mean(x_train, axis=0)
-    x_train -= mean
-    x_test -= mean
+    # create list of categories
+    categories = [str(i) for i in list(range(n_classes))]
 
     # Create Model
     init = Input(shape=(299, 299, 3))
     model = stem(init)
-    for i in range(4):
+    for i in range(2):
         model = inception_A(model)
 
     model = reduction_A(model, k=192, l=224, m=256, n=384)
 
-    for i in range(7):
+    for i in range(4):
         model = inception_B(model)
 
     model = reduction_B(model)
 
-    for i in range(3):
+    for i in range(2):
         model = inception_C(model)
 
     model = AveragePooling2D((8, 8))(model)
 
     model = Dropout(0.2)(model)
     model = Flatten()(model)
-    model = Dense(units=n_classes, activation='softmax')(model)
+    model = Dense(units=102, activation='softmax')(model)
     model = Model(init, model, name='Inception-v4')
 
     # Initiate a Stochastic Gradient Descent optimizer
@@ -207,27 +213,48 @@ def create_model(x_train, y_train, x_test, y_test, batch_size, epochs, learning_
     ]
 
     # Train the model
-    if use_data_aug:
-        data_generator = ImageDataGenerator(width_shift_range=0.1,
-                                            height_shift_range=0.1,
-                                            horizontal_flip=True,
-                                            vertical_flip=True)
-        data_generator.fit(x_train)
-        flow = data_generator.flow(x_train, y_train, batch_size=batch_size)
-        history = model.fit_generator(flow,
-                                      epochs=epochs,
-                                      validation_data=(x_test, y_test),
-                                      shuffle=True)
-    else:
-        history = model.fit(x_train, y_train,
-                            batch_size=batch_size,
-                            epochs=epochs,
-                            validation_data=(x_test, y_test),
-                            shuffle=True)
-
+    train_generator = ImageDataGenerator(
+        rotation_range=8,
+        width_shift_range=0.08,
+        shear_range=0.3,
+        height_shift_range=0.08,
+        zoom_range=0.08,
+        horizontal_flip=True,
+        vertical_flip=True,
+        rescale=1. / 255.,
+        validation_split=0.2)
+    test_generator = ImageDataGenerator(rescale=1. / 255.)
+    train_flow = train_generator.flow_from_dataframe(
+        dataframe=train_dataset,
+        x_col=0,
+        y_col=1,
+        classes=categories,
+        class_mode='categorical',
+        target_size=(299, 299),
+        batch_size=batch_size,
+        directory='FlowerData/jpg',
+        subset='training')
+    valid_flow = train_generator.flow_from_dataframe(
+        dataframe=train_dataset,
+        x_col=0,
+        y_col=1,
+        classes=categories,
+        class_mode='categorical',
+        target_size=(299, 299),
+        batch_size=batch_size,
+        directory='FlowerData/jpg',
+        subset='validation')
+    # test_flow = test_generator.flow(test_images, test_cats, batch_size=batch_size)
+    history = model.fit_generator(generator=train_flow,
+                                  steps_per_epoch=(train_flow.n // train_flow.batch_size),
+                                  validation_data=valid_flow,
+                                  validation_steps=3 * (valid_flow.n // valid_flow.batch_size),
+                                  epochs=epochs,
+                                  verbose=1,
+                                  callbacks=callbacks)
+    # model.evaluate_generator(generator=test_flow)
     # Create Plot
     if hvd.rank() == 0:
         if plot_path:
             plot_history(history, plot_path)
-
     return model
